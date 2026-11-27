@@ -28,9 +28,6 @@ steps:
             --tag canary
           gcloud run services update-traffic appdelivery-service \
             --region us-central1 \
-            --to-revisions appdelivery-service-00001-j46=100
-          gcloud run services update-traffic appdelivery-service \
-            --region us-central1 \
             --to-tags canary=10
         else
           gcloud run deploy appdelivery-service \
