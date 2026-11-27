@@ -1,48 +1,41 @@
 steps:
-  # 1. Instalar dependências e rodar testes automatizados
   - name: 'node:18'
     entrypoint: 'npm'
     args: ['install']
+
   - name: 'node:18'
     entrypoint: 'npm'
     args: ['test']
 
-  # 2. Construir a imagem Docker
   - name: 'gcr.io/cloud-builders/docker'
-    args: [
-      'build',
-      '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/appdelivery-repo/app:$COMMIT_SHA',
-      '.'
-    ]
+    args: ['build', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/appdelivery-repo/app:$COMMIT_SHA', '.']
 
-  # 3. Salvar a imagem no Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: [
-      'push',
-      'us-central1-docker.pkg.dev/$PROJECT_ID/appdelivery-repo/app:$COMMIT_SHA'
-    ]
+    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/appdelivery-repo/app:$COMMIT_SHA']
 
-  # 4. Fazer deploy no Cloud Run sem enviar tráfego imediato
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'gcloud'
-    args: [
-      'run', 'deploy', 'appdelivery-service',
-      '--image', 'us-central1-docker.pkg.dev/$PROJECT_ID/appdelivery-repo/app:$COMMIT_SHA',
-      '--region', 'us-central1',
-      '--platform', 'managed',
-      '--allow-unauthenticated',
-      '--no-traffic',
-      '--tag', 'canary'
-    ]
-
-  # 5. Dividir o tráfego (90% versão atual / 10% nova revisão canary)
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'gcloud'
-    args: [
-      'run', 'services', 'update-traffic', 'appdelivery-service',
-      '--region', 'us-central1',
-      '--to-tags', 'canary=10'
-    ]
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if gcloud run services describe appdelivery-service --region us-central1 >/dev/null 2>&1; then
+          gcloud run deploy appdelivery-service \
+            --image us-central1-docker.pkg.dev/$PROJECT_ID/appdelivery-repo/app:$COMMIT_SHA \
+            --region us-central1 \
+            --platform managed \
+            --allow-unauthenticated \
+            --no-traffic \
+            --tag canary
+          gcloud run services update-traffic appdelivery-service \
+            --region us-central1 \
+            --to-tags canary=10
+        else
+          gcloud run deploy appdelivery-service \
+            --image us-central1-docker.pkg.dev/$PROJECT_ID/appdelivery-repo/app:$COMMIT_SHA \
+            --region us-central1 \
+            --platform managed \
+            --allow-unauthenticated
+        fi
 
 images:
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/appdelivery-repo/app:$COMMIT_SHA'
