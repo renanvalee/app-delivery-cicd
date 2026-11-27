@@ -4,8 +4,8 @@ const PORT = process.env.PORT || 8080;
 
 app.get('/', (req, res) => {
   res.send(`
-    <body style="font-family: sans-serif; text-align: center; padding-top: 50px; background-color:#c8e6c9;">
-      <h1>AppDelivery - Versão 2.0 (Canary release) </h1>
+    <body style="font-family: sans-serif; text-align: center; padding-top: 50px; background-color:#e3f2fd;">
+      <h1>AppDelivery - Versão 1.0 (Estável) </h1>
       <p>Deploy automatizado rodando no Google Cloud Run!</p>
     </body>
   `);
